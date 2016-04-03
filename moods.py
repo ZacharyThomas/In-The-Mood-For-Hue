@@ -1,7 +1,12 @@
 import requests
 import json
+#from VideoCapture import Device
+#from SimpleCV import Camera
+import pygame
+import pygame.camera
 
 def main():
+
     api_key = get_key()
     if ( api_key == "YOUR_KEY_HERE") : 
         print "Fill in your keys.txt properly doge." 
@@ -26,8 +31,7 @@ def get_emotions(api_key, img_as_binary):
     }
     payload = { "url": img_url}
 
-    response = requests.post(request_url, data=json.dumps(payload), headers=headers)
-    return response.json()
-
+    
+    
 if __name__ == '__main__':
     main()
