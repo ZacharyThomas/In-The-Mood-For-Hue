@@ -19,7 +19,7 @@ def main():
     rval, frame = vc.read()
     
     count=0
-    while True and count<10:
+    while True and count<2:
         
         if frame is not None:   
             cv2.imshow("preview", frame)
@@ -32,7 +32,6 @@ def main():
                 rfile = open("img"+str(count)+".jpg", "r")
                 filehex = rfile.read()
                 #fileb64 = base64.b64encode(filehex)
-                print sys.getsizeof(filehex)
                 emotion_response = get_emotions(api_key, filehex)
                 print emotion_response
                 count+=1
@@ -57,7 +56,13 @@ def get_emotions(api_key, img_as_binary):
     #payload = { img_url}
 
     response = requests.post(request_url, data=img_as_binary, headers=headers)
+    read_response(response.json())
     return response.json()
+
+def read_response(resp):
+    r = resp[0]['scores']
+    M = max(r.iterkeys(), key=(lambda key: r[key]))
+    return M
 
 if __name__ == '__main__':
     main()
