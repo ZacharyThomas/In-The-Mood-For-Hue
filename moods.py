@@ -4,41 +4,43 @@ import numpy as np
 import cv2
 import sys
 import base64
+import serial
 
 def main():
-    face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+    
     
     api_key = get_key()
     if ( api_key == "YOUR_KEY_HERE") : 
         print "Fill in your keys.txt properly doge." 
         return 
     
-    cv2.namedWindow("preview")
     vc = cv2.VideoCapture(0)
-
-    rval, frame = vc.read()
     
-    count=0
-    while True and count<2:
-        
-        if frame is not None:   
-            cv2.imshow("preview", frame)
-            rval, frame = vc.read()
-            faces = face_cascade.detectMultiScale(frame, 1.3, 5)
-            
-            if len(faces)>0:
-                cv2.imwrite("img"+str(count)+".jpg", frame)
+   
+    is_detected,hexfile = detect_face_frames(vc)
+    
+    while not is_detected:
+        is_detected,hexfile = detect_face_frames(vc)
+    
+    emotion_response = get_emotions(api_key, hexfile)
 
-                rfile = open("img"+str(count)+".jpg", "r")
-                filehex = rfile.read()
-                #fileb64 = base64.b64encode(filehex)
-                emotion_response = get_emotions(api_key, filehex)
-                print emotion_response
-                count+=1
+    send_emotion(emotion_response)
 
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+def detect_face_frames(vc):    
+    face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+    rval, frame = vc.read()
+    if frame is not None:   
+        rval, frame = vc.read()
+        faces = face_cascade.detectMultiScale(frame, 1.3, 5)
+        if len(faces)>0:
+            cv2.imwrite("img.jpg", frame)
+            rfile = open("img.jpg", "r")
+            filehex = rfile.read()
+            return (True,filehex)
+        else: 
+            return (False,None)
+    else:
+        return (False,None)
  
 def get_key(): 
     with open("keys.txt", "r") as keys:
@@ -53,16 +55,37 @@ def get_emotions(api_key, img_as_binary):
         'content-type' : 'application/octet-stream',
         'Ocp-Apim-Subscription-Key' : api_key
     }
-    #payload = { img_url}
 
     response = requests.post(request_url, data=img_as_binary, headers=headers)
-    read_response(response.json())
-    return response.json()
+    return get_max(response.json())
+    
+def get_max(resp):
+    emotion_scores = resp[0]['scores']
+    return max(emotion_scores.iterkeys(), key=(lambda key: emotion_scores[key]))
+    
+def send_emotion(emotion):
+    print "Emotion: " + emotion
+    ser = serial.Serial('/dev/cu.usbmodem1421', 9600)    
+    if(emotion == "anger"):
+        ser.write('a'.encode())
+    elif(emotion == "neutral"):
+        ser.write('n'.encode())
+    elif(emotion == "sadness"):
+        ser.write('s'.encode())
+    elif(emotion == "disgust"):
+        ser.write('d'.encode())
+    elif(emotion == "contempt"):
+        ser.write('c'.encode())
+    elif(emotion == "fear"):
+        ser.write('f'.encode())
+    elif(emotion == "happiness"):
+        ser.write('h'.encode())
+    elif(emotion == "surprise"):
+        ser.write('x'.encode())
 
-def read_response(resp):
-    r = resp[0]['scores']
-    M = max(r.iterkeys(), key=(lambda key: r[key]))
-    return M
+
+        
+    print "We did it! :)"
 
 if __name__ == '__main__':
     main()
